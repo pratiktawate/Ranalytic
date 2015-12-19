@@ -23,3 +23,5 @@ fluidPage(
     )
   )
 )
+
+runApp()
