@@ -1,0 +1,1531 @@
+PUBLIC
+SAP HANA Vora 1.0
+Document Version: 1.1 – 2015-10-08
+SAP HANA Vora Installation and Developer Guide
+Content1 Introduction................................................................41.1 SAP HANA Vora and Apache Hadoop...............................................42 Installation.................................................................62.1 SAP HANA Vora Components....................................................62.2 SAP HANA Vora Packages......................................................82.3 Cluster Node Overview.........................................................82.4 Installation Prerequisites........................................................92.5 Collect Hadoop Cluster Information...............................................122.6 Install the SAP HANA Vora Engine................................................13Install the SAP HANA Vora Engine Using Ambari....................................13Install the SAP HANA Vora Engine Using Cloudera..................................152.7 Install the SAP HANA Vora Spark Extension Library....................................162.8 Install the SAP HANA Vora Zeppelin Interpreter.......................................182.9 Update SAP HANA Vora.......................................................21Update the SAP HANA Vora Engine Using Ambari...................................21Update the SAP HANA Vora Engine Using Cloudera.................................22Update the SAP HANA Vora Spark Extension Library................................232.10 Set Up SAP HANA Spark Controller...............................................243 Development..............................................................273.1 Getting Started..............................................................273.2 Using the SAP HANA Vora Data Source............................................29Querying Data............................................................29Code Examples...........................................................32SAP HANA Vora Data Source API..............................................343.3 Working with Hierarchies......................................................36Representing Hierarchies as Adjacency Lists......................................36Creating Hierarchies.......................................................38Joining Hierarchies with Other Tables...........................................39Using Hierarchies with Views..................................................41Hierarchy UDFs...........................................................423.4 Using the SAP HANA Data Source................................................42Querying Data............................................................43Code Example............................................................44Pushing Down SAP HANA UDFS...............................................45SAP HANA Data Source API..................................................46
+2
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved.
+SAP HANA Vora Installation and Developer Guide
+Content
+3.5 Extended Data Sources API.....................................................463.6 System Architecture..........................................................484 Administration.............................................................514.1 Start and Stop the SAP HANA Vora Service..........................................514.2 Start the SAP HANA Vora Spark Thrift Server........................................534.3 SAP HANA Vora Service: Configuration Settings......................................554.4 Best Practices: Administration and Operations.......................................56HDFS..................................................................57Choosing a Cluster Manager..................................................57Example Cluster Configuration Including a Client Machine (Jump Box)....................585 Security..................................................................605.1 Technical System Landscape....................................................615.2 Other Security-relevant Information...............................................61
+SAP HANA Vora Installation and Developer Guide
+Content
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved. 3
+1 Introduction
+SAP HANA Vora provides an in-memory processing engine that is integrated into the Hadoop ecosystem and Spark execution framework. Able to scale to thousands of nodes, it is designed for use in large distributed clusters and for handling big data.Fast Query Execution
+The SAP HANA Vora processing engine holds data in memory and boosts the execution performance of Spark. Supporting just-in-time code compilation, it translates incoming SQL queries into machine-level code on the fly using a LLVM compiler, enabling them to be executed quickly and efficiently.Data Analytics
+SAP HANA Vora makes available OLAP-style capabilities for data on Hadoop, in particular, a hierarchy implementation that allows hierarchical data structures to be defined and complex computations performed on different levels of data. Extensions to Spark SQL also include enhancements to the data source API to enable Spark SQL queries or parts of the queries to be pushed down to the SAP HANA Vora processing engine.SAP HANA Integration
+Data processing between the SAP HANA and Hadoop environments allows data in SAP HANA to be combined with big data stored in Hadoop systems and processed in Spark or SAP HANA applications.1.1 SAP HANA Vora and Apache Hadoop
+The SAP HANA Vora solution is built on the Hadoop ecosystem, an open-source project providing a collection of components that support distributed processing of large data sets across a cluster of machines. Hadoop
+4
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved.
+SAP HANA Vora Installation and Developer Guide
+Introduction
+allows both structured as well as complex, unstructured data to be stored, accessed, and analyzed across the cluster.
+The main components used in this environment are shown in the figure below:
+Component
+Description
+More Information
+Ambari
+An open operational framework for provisioning, managing and monitoring Apache Hadoop clusters.Apache Ambari
+Cloudera
+Cloudera Manager - Cloudera's automated cluster management tool.
+http://www.cloudera.com
+HDFS
+The Hadoop Distributed File System.HDFS Users Guide
+Zookeeper
+A centralized service for maintaining configuration information and naming, and for providing distributed synchronization and group services.Apache ZooKeeper
+Yarn
+Hadoop’s resource manager and job scheduler.Apache Hadoop YARN
+HBase
+The Hadoop database.Apache HBase
+Pig
+A high-level data-flow language and execution framework for parallel computation.Apache Pig
+Spark SQL
+A module for structured and semi-structured data processing.Spark SQL and DataFrame Guide
+Apache Hive
+A data warehouse infrastructure supporting data summarization, query, and analysis.Apache Hive
+MLib
+A machine learning tool that runs on Spark.Machine Learning Library (MLlib) Guide
+SAP HANA Vora Installation and Developer Guide
+Introduction
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved. 5
+2 Installation
+To install SAP HANA Vora, first familiarize yourself with the components it contains and the installation packages you require. Review the installation prerequisites to ensure a properly configured cluster and then download and install the SAP HANA Vora packages.
+Complete the individual tasks in the following order:
+Task
+See
+Understand what components make up the SAP HANA Vora systemSAP HANA Vora Components [page 6]
+Find out what packages are required to install SAP HANA Vora and where they are availableSAP HANA Vora Packages [page 8]
+Check the overview of the different node types and see which components are typically deployed whereCluster Node Overview [page 8]
+Ensure your Hadoop cluster is correctly set up and meets the installation requirements for SAP HANA VoraInstallation Prerequisites [page 9]
+Collect and document essential information about your Hadoop clusterCollect Hadoop Cluster Information [page 12]
+Download and install the package containing the SAP HANA Vora engineInstall the SAP HANA Vora Engine [page 13]
+Download and install the package containing the SAP HANA Vora Spark extension libraryInstall the SAP HANA Vora Spark Extension Library [page 16]
+Optionally enable the Zeppelin interpreter if you want to use Zeppelin (an interactive data analytics tool)
+Note that Zeppelin is still in the incubation phase.Install the SAP HANA Vora Zeppelin Interpreter [page 18]
+Update your SAP HANA Vora installationUpdate SAP HANA Vora [page 21]
+Set up the Spark Controller so that you can query tables accessible through Spark from SAP HANASet Up SAP HANA Spark Controller [page 24]2.1 SAP HANA Vora Components
+The SAP HANA Vora system consists of two main components, the SAP HANA Vora engine, which needs to be installed on all compute nodes in the cluster, and the SAP HANA Vora Spark extension library, which provides access to the SAP HANA Vora engine and its functional features.SAP HANA Vora Engine
+The SAP HANA Vora SQL engine is a service that you add to your existing Hadoop installation. SAP HANA Vora instances hold data in memory and boost the performance of out-of-the box Spark. To increase execution
+6
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved.
+SAP HANA Vora Installation and Developer Guide
+Installation
+performance on the node level, you add an SAP HANA Vora instance to each compute node so that it contains the following:●
+A Spark worker●
+An SAP HANA Vora engine
+The integration of the SAP HANA Vora engine with Spark is shown in the overview below:SAP HANA Vora Spark Extension Library
+The SAP HANA Vora extension library allows SAP HANA Vora to be accessed through Spark. It also makes available additional functionality, such as a hierarchy implementation, which allows you to build hierarchies and run hierarchical queries.
+To use the extension library, you need to install the extension package on the cluster on the nodes on which Spark is installed.
+Related InformationSAP HANA Vora Packages [page 8]Cluster Node Overview [page 8]
+SAP HANA Vora Installation and Developer Guide
+Installation
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved. 7
+2.2 SAP HANA Vora Packages
+To install the SAP HANA Vora system, you require two packages, one which contains the SAP HANA Vora engine and the other the SAP HANA Vora Spark extension library. Both packages are available for download from the SAP Software Download Center .
+Package
+DescriptionVORA_AM<version>.TGZVORA_CL<version>.TGZ
+The SAP HANA Vora engine for Ambari and Cloudera.
+These packages allow the SAP HANA Vora engine to be deployed on the compute nodes using the respective provisioning tool.
+The package can be downloaded from the SAP Software Download Center at: https://support.sap.com/swdcVORA_SE<version>.TGZ
+The SAP HANA Vora Spark extension library. This open source library allows the SAP HANA Vora engine and its functional features to be accessed using Spark.
+The projects contain a build script to create a distribution package that contains a JAR with all dependencies and a number of shell scripts to use the SAP HANA Vora extension.
+The pre-built package can be downloaded from the SAP Software Download Center at: https://support.sap.com/swdc2.3 Cluster Node Overview
+You need to choose appropriate nodes when you deploy the SAP HANA Vora packages on the cluster. An overview of the different node types is given below.Node Types
+For the purposes of setting up a cluster, four different types of cluster nodes are distinguished:
+Node Type
+Description
+Management node
+Contains the cluster provisioning tool, for example, Ambari or Cloudera.
+Master nodes
+Contain central cluster components, such as the NameNode or ZooKeeper servers.
+Worker nodes
+These are the compute nodes of the cluster. They contain components such as DataNodes or NodeManagers.
+Jump boxes
+Contain only client components, such as the HDFS client, and serve as an entry point for users to start compute jobs using Spark.
+8
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved.
+SAP HANA Vora Installation and Developer Guide
+Installation
+Installation and Deployment
+If you use Yarn’s Resource Manager as the cluster manager, you should install and deploy the SAP HANA Vora components in the following way:
+Component
+Management Node
+Master Node
+Worker Node
+Jump BoxVora Engine
+Yes
+Ambari/Cloudera package to deploy the engine on the worker nodes
+No
+Yes
+Automatically deployed Vora engine instances
+NoVora Extension Library
+No
+No
+No
+YesVora Zeppelin Interpreter
+No
+No
+No
+Yes
+Assumes Zeppelin is installed on the jump box2.4 Installation Prerequisites
+A Hadoop cluster is a prerequisite for installing SAP HANA Vora. Review the installation requirements to ensure that the cluster you use is correctly set up.Installation Prerequisite ChecklistHadoop Distributions [page 10]Cluster Provisioning Tools [page 10]Operating Systems [page 10]Supported Platforms [page 11]Cluster Sizing [page 11]Required Components [page 12]Note
+Only certain combinations of operating system, cluster provisioning tool, and Hadoop distribution are supported. These are listed under Supported Platforms.
+SAP HANA Vora Installation and Developer Guide
+Installation
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved. 9
+Hadoop Distributions
+SAP HANA Vora can only be used with selected Hadoop distributions:●
+Hortonworks Data Platform (HDP)●
+Cloudera Enterprise (CDH)Cluster Provisioning Tools
+The cluster must be managed by one of the following cluster provisioning tools:●
+Apache Ambari 1.7 or 2.1: https://ambari.apache.org/●
+Cloudera 5.4Operating Systems
+The following operating systems are supported:●
+SUSE Linux Enterprise Server (SLES) 11 SP3 (see compatibility pack details below)●
+Red Hat Enterprise Linux (RHEL) 6.6 (see compatibility pack details below) and 7.1
+Compatibility packs are required as follows:
+Operating System
+Compatibility Pack
+SLES 11 SP3
+You need to install the RPM packages libgcc_s1 and libstdc++6.
+Ensure that the versions are not earlier than the following (earlier versions cause problems during runtime due to improper exception handling):●libgcc_s1-4.7.2_20130108-0.17.2●libstdc++6-4.7.2_20130108-0.17.2
+Install the RPM packages as follows, if they are not already installed by default:
+# zypper install libgcc_s1 libstdc++6
+10
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved.
+SAP HANA Vora Installation and Developer Guide
+Installation
+Operating System Compatibility Pack
+RHEL 6.6
+To run SAP HANA Vora on RHEL 6.6, an additional runtime environment for GCC 4.7 is required, which you can add by installing the RPM package compat-sap-c++ (see also SAP Note 2001528 ).
+To be able to access the library, you need a subscription for "Red Hat Enterprise Linux Server for SAP HANA". This allows you to subscribe your server to the "RHEL Server SAP HANA" channel on the Red Hat Customer Portal or your local Satellite server. After you have subscribed your server to the channel, the output of yum repolist should contain the following:
+rhel-x86_64-server-sap-hana-6 RHEL Server SAP HANA (v. 6 for 64-bit x86_64)
+You can then install the GCC 4.7 libstdc++ library with the following command:
+# yum install compat-sap-c++
+For an up-to-date list of supported operating systems, see SAP Note 2203837.Supported Platforms
+The following combinations of operating system, cluster provisioning tool, and Hadoop distribution are supported:
+Operating System
+Cluster Provisioning Tool
+Hadoop Distribution
+Hadoop
+SLES 11 SP3
+Ambari 1.7
+HDP 2.2
+Hadoop 2.6.0
+RHEL 7.1
+Ambari 2.1
+HDP 2.3
+Hadoop 2.7.1
+RHEL 6.6
+Ambari 1.7
+HDP 2.2
+Hadoop 2.6.0
+Cloudera 5.4
+CDH 5.4.5
+Hadoop 2.6.0Cluster Sizing
+To enable efficient cluster computation using the SAP HANA Vora extension, the cluster nodes should have at least the following:●
+4 cores●
+8 GB of RAM●
+20 GB of free disk space for HDFS data
+SAP HANA Vora Installation and Developer Guide
+Installation
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved. 11
+Required Components
+The following components are required on the cluster:
+Component
+More Information
+HDFS 2.6.x or 2.7.1https://hadoop.apache.org/docs/stable/
+ZooKeeper 3.4.6http://zookeeper.apache.org/releases.html
+Spark 1.4.1https://spark.apache.org/releases/spark-release-1-4-1.html
+Yarn cluster managerhttps://spark.apache.org/docs/latest/running-on-yarn.html
+Zeppelin v0.5.0
+Optional – allows you to use the Zeppelin integration. Note that Zeppelin is still in the incubation phase: https://zeppelin.incubator.apache.org/2.5 Collect Hadoop Cluster Information
+Before proceeding with the installation, collect and document the following information about your Hadoop cluster. You will need to have this information at hand during the installation.Procedure
+Make a note of the following information:○
+User and password for Ambari/Cloudera○
+Operating system user and password○
+HDFS user and password○
+List of Hadoop nodes and their IP addresses○
+ZooKeeper IP and its port○
+NameNode and its port○
+Installation directories of Ambari/Cloudera, ZooKeeper, and so on
+12
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved.
+SAP HANA Vora Installation and Developer Guide
+Installation
+2.6 Install the SAP HANA Vora Engine
+The SAP HANA Vora engine is contained in the VORA_AM<version>.TGZ and VORA_CL<version>.TGZ packages, which are provided specifically for the Ambari and Cloudera provisioning tools so that they can be used to install the SAP HANA Vora engine instances on the cluster.Procedure●Install the SAP HANA Vora Engine Using Ambari [page 13]●Install the SAP HANA Vora Engine Using Cloudera [page 15]2.6.1 Install the SAP HANA Vora Engine Using Ambari
+Use the Ambari provisioning tool to install the SAP HANA Vora engine on your cluster.Procedure1.
+Log on to the Ambari cluster management node.2.
+Download VORA_AM<version>.TGZ from the SAP Software Download Center at https://support.sap.com/swdc to the management node.3.
+Go to /var/lib/ambari-server/resources/stacks/HDP/<HDP_version>/services.
+The exact directory path depends on the version of your HDP distribution:○
+HDP 2.2: /var/lib/ambari-server/resources/stacks/HDP/2.2/services○
+HDP 2.3: /var/lib/ambari-server/resources/stacks/HDP/2.3/services4.
+Copy VORA_AM<version>.TGZ to that directory and extract it.5.
+Restart the Ambari server with the following command:
+$ ambari-server restart
+Depending on your cluster configuration, you may need to be the root user or a user with administrator rights to do so.6.
+Wait until the Ambari Administration Interface is up and running.
+Ambari is now able to provision the SAP HANA Vora engine as a service on the Hadoop cluster.7.
+On the Ambari dashboard, choose ActionsAdd Service.8.
+On the Choose Services screen, select the SAP HANA Vora option and click Next.9.
+Add the newly added service to the appropriate hosts.
+SAP HANA Vora Installation and Developer Guide
+Installation
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved. 13
+Note
+We recommend that you add the SAP HANA Vora service to each node that acts as a Spark worker node.10.
+Customize the service.
+Modify the SAP HANA Vora service configuration, if needed. This includes, in particular, the following:○
+User and group under which the SAP HANA Vora engine runs:○
+Default user: vora○
+Default group: vora○
+File system location of the SAP HANA Vora engine logs:
+Default directory: /var/log/vora○
+Level of logging information:
+Default: INFONote
+We recommend that you use the default values.11.
+Deploy the service and complete the installation.
+You can now use Ambari to control the SAP HANA Vora instances in the cluster. An example of how this looks is shown below:Note
+You can confirm that the SAP HANA Vora engine has been successfully deployed on the cluster nodes by verifying that the v2server process is running on them.
+14
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved.
+SAP HANA Vora Installation and Developer Guide
+Installation
+2.6.2 Install the SAP HANA Vora Engine Using Cloudera
+Use the Cloudera provisioning tool to install the SAP HANA Vora engine on your cluster.Procedure1.
+Log on to the Cloudera cluster management node.2.
+Download VORA_CL<version>.TGZ from the SAP Software Download Center at https://support.sap.com/swdc to a temporary directory on the management node.3.
+Extract the package.4.
+Copy all files contained in the csd directory to /opt/cloudera/csd, the default local descriptor repository path.5.
+Copy all files contained in the parcel-repo directory to /opt/cloudera/parcel-repo, the default local parcel repository path.6.
+Remove the temporary directory.7.
+Restart the Cloudera server and wait until it is up and running.
+Cloudera is now able to provision the SAP HANA Vora engine as a service on the Hadoop cluster.8.
+In the Cloudera Manager, choose Hosts and then the Parcels tab.9.
+In the parcel list, locate SAPHanaVora and choose the Distribute button.
+Wait until the parcel has been distributed. The parcel's status is shown as distributed.10.
+Choose the Activate button.
+The Restart Cluster dialog box appears.11.
+Choose Close.
+The parcel's status is shown as distributed and activated.12.
+Choose Home in the main menu.13.
+In the main menu, open the Clusters dropdown menu and click your cluster name.14.
+In the Actions dropdown menu on the right of the cluster screen, choose Add a Service.Note
+The location of this option may vary depending on your Cloudera Manager version.
+A list of service types is displayed.15.
+Select the SAP HANA Vora service and choose Continue.16.
+On the service dependency page, choose Continue.17.
+On the role assignment page, click the box below SAP HANA Vora Worker.
+The Hosts Selected dialog box appears.18.
+Select the appropriate hosts from the list and choose OK.
+SAP HANA Vora Installation and Developer Guide
+Installation
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved. 15
+Note
+We recommend that you add the SAP HANA Vora service to each node that acts as a Spark worker node.19.
+Wait until the SAP HANA Vora service is up and running.20.
+Choose Continue and then Finish.Note
+If needed, you can modify the SAP HANA Vora service configuration. This includes, in particular, the following:○
+User and group under which the SAP HANA Vora engine runs:○
+Default user: vora○
+Default group: vora○
+File system location of the SAP HANA Vora engine logs:
+Default directory: /var/log/vora○
+Level of logging information:
+Default: INFO
+We recommend that you use the default values.Results
+You can now use the Cloudera Manager to control the SAP HANA Vora instances in the cluster.2.7 Install the SAP HANA Vora Spark Extension Library
+To use the SAP HANA Vora engine in Spark, you need to install the SAP HANA Vora Spark extension library.Prerequisites●
+You have already successfully deployed the SAP HANA Vora SQL engine to the compute nodes of the cluster and the instances are running.●
+You have already installed Spark.
+16
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved.
+SAP HANA Vora Installation and Developer Guide
+Installation
+Procedure1.
+SSH to the jump box as the user who runs the Spark jobs and create a vora directory in the home folder.2.
+Download the library package VORA_SE<version>.TGZ from the SAP Software Download Center at https://support.sap.com/swdc to the vora directory.3.
+Unpack the archive into the vora directory.
+The vora directory now contains the following two folders:○lib/: Contains a JAR file with all necessary dependencies (excluding Spark).○bin/: Contains scripts for ease of use.○META-INF/: Contains the pom.properties and pom.xml files.4.
+Make sure that the SAP HANA Vora extension has been successfully installed by creating an empty table:a.
+Change to the vora/bin directory.b.
+Open a Spark shell, for example, by using the shell script:
+$ ./start-spark-shell.sh --master yarn-clientc.
+Enter the following statements in the Spark shell prompt to create a table and check that it has been successfully created:
+scala> import org.apache.spark.sql.SapSQLContext
+scala> val vc = new SapSQLContext(sc)
+scala> val testsql = """
+CREATE TABLE table001 (a1 double, a2 int, a3 string)
+USING com.sap.spark.vora
+OPTIONS (
+tableName "table001",
+hosts "Comma-separated HOST list of the Vora engine nodes",
+zkurls "Comma-separated HOST:PORT list of the ZooKeeper nodes",
+nameNodeUrl "HOST:PORT of the NameNode"
+)"""
+scala> vc.sql(testsql)
+scala> vc.sql("show tables").show
++---------+-----------+
+|tableName|isTemporary|
++---------+-----------+
+| table001| false|
++---------+-----------+
+scala > <Ctrl-C to quit>Note
+SAP HANA Vora uses a catalog component to keep track of the hosts in the system that run a SAP HANA Vora engine. There are two ways in which you can add hosts to the catalog:○
+Use the hosts option in a CREATE TABLE statement.○
+Specify spark.vora.hosts in the spark-defaults.conf file.
+It is good practice to configure the list of known hosts in the spark-defaults.conf file. This applies equally to the ZooKeeper and NameNode URLs:
+spark.vora.hosts <Comma-separated HOST list of the Vora engine nodes>
+spark.vora.namenodeurl <HOST:PORT of the NameNode>
+spark.vora.zkurls <Comma-separated HOST:PORT list of the ZooKeeper nodes>
+SAP HANA Vora Installation and Developer Guide
+Installation
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved. 17
+The port is required for nameNodeUrl and is optional for hosts and zkurls.Results
+You have now successfully installed the SAP HANA Vora extension and can use it as follows:●
+The JAR file in the lib folder (spark-sap-datasources-VERSION-assembly.jar) can be provided to Spark using the --jars option.
+For example, assuming the spark-shell command is on the user's path:
+$ spark-shell --jars ~/vora/lib/spark-sap-datasources-VERSION-assembly.jar●
+Alternatively, the shell scripts in the bin folder can be used to run a Spark shell and a Thrift server with the SAP HANA Vora extension library. To do so, the SPARK_HOME environment variable needs to point to the Spark folder on the jump box.
+You can then start the Spark shell in Yarn client mode as follows:
+$ ./start-spark-shell.sh --master yarn-client
+You can start the Thrift server as follows:
+$ ./start-sapthriftserver.sh
+Related InformationQuerying Data [page 29]Start the SAP HANA Vora Spark Thrift Server [page 53]2.8 Install the SAP HANA Vora Zeppelin Interpreter
+Zeppelin is a graphical user interface that allows you, as a data scientist, to interact easily with a cluster. The SAP HANA Vora Spark extension provides an interpreter for the Zeppelin user interface.Prerequisites
+You require Zeppelin 0.5.x built against Spark 1.4.1, Hadoop 2.6, and Yarn, installed on one of the cluster nodes (most likely the jump box).
+You can build a compatible Zeppelin version as follows (you require Maven with minimum version 3.1):
+$ git clone https://github.com/apache/incubator-zeppelin.git
+18
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved.
+SAP HANA Vora Installation and Developer Guide
+Installation
+$ cd incubator-zeppelin
+$ git checkout a9a058b2f5d0b17e518f866b497b1ce318531d9b
+$ mvn package -DskipTests -Pspark-1.4 -Dspark.version=1.4.1 -Dhadoop.version=2.6.0 -Phadoop-2.6 -Pyarn -P build-distr
+After the build process has completed, you should have a tar.gz package in the following directory:./zeppelin-distribution/targetContext
+The SAP HANA Vora extension library has its own SQL context class. A modified Zeppelin interpreter is therefore required to allow Zeppelin to run in the modified context. To enable the interpreter, you need to register it with Zeppelin.Restriction
+Zeppelin is still in the incubation stage. The steps below are provided for guidance only.Procedure1.
+Copy spark-sap-datasources-<VERSION>-assembly.jar to <ZEPPELIN_HOME>/interpreter/spark:
+$ cp ~/vora/lib/spark-sap-datasources-<VERSION>-assembly.jar \
+<ZEPPELIN_HOME>/interpreter/spark/spark-sap-datasources-assembly.jarNote<ZEPPELIN_HOME> refers to the directory to which the Zeppelin binaries have been extracted.2.
+Add the following variables to the <ZEPPELIN_HOME>/conf/zeppelin-env.sh file:
+export MASTER=yarn-client
+export ZEPPELIN_PORT=9099
+export ADD_JARS="<ZEPPELIN_HOME>/interpreter/spark/spark-sap-*.jar"3.
+Add the interpreter class org.apache.spark.sql.SapSqlInterpreter to the zeppelin.interpreters property in the <ZEPPELIN_HOME>/conf/zeppelin-sites.xml file:
+...
+<property>
+<name>zeppelin.interpreters</name>
+<value>INTERPRETER_1,...,INTERPRETER_N,org.apache.spark.sql.SapSqlInterpreter</value>
+<description>Comma separated interpreter configurations.
+First interpreter become a default</description>
+</property>
+...
+SAP HANA Vora Installation and Developer Guide
+Installation
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved. 19
+4.
+For HDP with Ambari only: Update the YARN configuration as follows:a.
+Check the installed HDP version (<HDP_VERSION>), for example, from the following directory name: /usr/hdp/<HDP_VERSION>b.
+On the Ambari administration interface, select the YARN service and choose the Configs tab. Scroll down to the Custom yarn-site section and choose Add Property.c.
+Add a property with the key hdp.version and value <HDP_VERSION>.5.
+Start the Zeppelin server:
+$ <ZEPPELIN_HOME>/bin/zeppelin-daemon.sh start6.
+In a web browser, open Zeppelin: http://DNS_NAME_OF_JUMPBOX_NODE:90997.
+Open a notebook and click the "configuration" icon.
+You should see an additional interpreter prefix called %vora in the interpreter list.8.
+Test that the Zeppelin interpreter has been successfully installed.
+Create a new notebook and add the following two scripts:
+%vora CREATE TABLE table001 (a1 double, a2 int, a3 string)
+USING com.sap.spark.vora
+OPTIONS (
+tableName "table001",
+hosts "Comma-separated HOST list of the Vora engine nodes",
+zkurls "Comma-separated HOST:PORT list of the ZooKeeper nodes",
+nameNodeUrl "HOST:PORT of the NameNode"
+)
+%vora SHOW TABLES
+The execution of the first snippet might take some time (1-3 minutes), since a Spark application needs to be started on the server. Once the application is running, subsequent calls will be much faster (depending on the actual query).
+Example output:
+20
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved.
+SAP HANA Vora Installation and Developer Guide
+Installation
+2.9 Update SAP HANA Vora
+Update your SAP HANA Vora installation by downloading and installing the latest versions of the installation packages.
+Related InformationUpdate the SAP HANA Vora Engine Using Ambari [page 21]Update the SAP HANA Vora Engine Using Cloudera [page 22]Update the SAP HANA Vora Spark Extension Library [page 23]2.9.1 Update the SAP HANA Vora Engine Using Ambari
+Use the Ambari provisioning tool to install the latest version of the SAP HANA Vora engine on your cluster.Context
+If you want to check which version of SAP HANA Vora is currently installed, you can do this from the Ambari dashboard. In the Services panel on the left, choose Add Service from the Actions dropdown menu. Then locate SAP HANA Vora in the services list to see which version you are using.Tip
+You can also find this information in the metainfo.xml file in the directory /var/lib/ambari-server/resources/stacks/HDP/<HDP_version>/services/VORA .Procedure1.
+Stop the SAP HANA Vora service.a.
+In the Services panel on the dashboard, select SAP HANA Vora.b.
+In the Service Actions dropdown menu, choose Stop to stop all SAP HANA Vora instances.2.
+Remove the service.
+Run the following command from any machine where curl is available, for example, the management node of the cluster, replacing the placeholders with appropriate values:
+curl -u <AMBARI_USER>:<AMBARI_PASSWORD> -X DELETE -H 'X-Requested-By:admin' \
+http://<YOUR_MGMT_NODE_FQDN>:8080/api/v1/clusters/\
+SAP HANA Vora Installation and Developer Guide
+Installation
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved. 21
+<YOUR_CLUSTER_NAME>/services/VORA3.
+Download the latest version of VORA_AM<version>.TGZ.a.
+Log on to the Ambari cluster management node.b.
+Remove the VORA directory from the directory /var/lib/ambari-server/resources/stacks/HDP/<HDP_version>/services/.c.
+Download the latest version of VORA_AM<version>.TGZ from the SAP Software Download Center at https://support.sap.com/swdc to the management node.d.
+Go to /var/lib/ambari-server/resources/stacks/HDP/<HDP_version>/services.e.
+Copy VORA_AM<version>.TGZ to that directory and extract it.4.
+Restart the Ambari server with the following command:
+$ ambari-server restart
+Depending on your cluster configuration, you may need to be the root user or a user with administrator rights to do so.
+Wait until the Ambari Administration Interface is up and running.5.
+Install the new version of the SAP HANA Vora engine according to the installation procedure.a.
+On the Ambari dashboard, choose ActionsAdd Service.b.
+On the Choose Services screen, select the SAP HANA Vora option and click Next.c.
+Add the service to the appropriate hosts.Tip
+We recommend that you add the SAP HANA Vora service to each node that acts as a Spark worker node.d.
+Deploy the service and complete the installation.2.9.2 Update the SAP HANA Vora Engine Using Cloudera
+Use the Cloudera provisioning tool to install the latest version of the SAP HANA Vora engine on your cluster.Procedure1.
+Stop the SAP HANA Vora service.a.
+On the Cloudera Manager Home page, click to the right of SAP HANA Vora and choose Stop in the dropdown menu.b.
+Choose Stop to confirm.
+When you see a Finished status, the service has stopped.2.
+Delete the SAP HANA Vora service.a.
+On the Home page, click to the right of SAP HANA Vora and choose Delete in the dropdown menu.
+22
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved.
+SAP HANA Vora Installation and Developer Guide
+Installation
+b.
+Choose Delete to confirm.3.
+Delete the parcels.a.
+Choose Hosts and then the Parcels tab.b.
+Choose the Deactivate button next to SAPHanaVora, wait until the parcel has been deactivated, and choose Restart.c.
+In the dropdown menu next to SAPHANAVora, choose Remove From Hosts and confirm.d.
+In the dropdown menu next to SAP HANA Vora, choose Delete and confirm.e.
+Delete the SAP HANA Vora files in the directory /opt/cloudera/csd and /opt/cloudera/parcel-repo/ from the management node.4.
+Install the new version of the SAP HANA Vora engine according to the installation procedure.
+Related InformationInstall the SAP HANA Vora Engine Using Cloudera [page 15]2.9.3 Update the SAP HANA Vora Spark Extension Library
+Download and install the latest version of the SAP HANA Vora Spark extension library.Procedure1.
+SSH to the jump box as the user who runs the Spark jobs.2.
+Remove the directory (for example, vora) in which you previously unpacked the VORA_SE<version>.TGZ package.3.
+Create a new vora directory in the home folder.4.
+Download the latest version of the VORA_SE<version>.TGZ package from the SAP Software Download Center at https://support.sap.com/swdc to the vora directory.5.
+Unpack the archive.6.
+Make sure the SAP HANA Vora extension has been successfully installed by completing step 4 of the installation procedure.7.
+If Zeppelin has been configured to support the SAP HANA Vora Spark extension library, update the library as follows:a.
+Shut down the Zeppelin server:
+$ <ZEPPELIN_HOME>/bin/zeppelin-daemon.sh stop
+Note that <ZEPPELIN_HOME> points to the Zeppelin folder.b.
+Overwrite the old SAP HANA Vora Spark extension library with the new version:
+$ cp ~/vora/lib/spark-sap-datasources-<VERSION>-assembly.jar \
+SAP HANA Vora Installation and Developer Guide
+Installation
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved. 23
+<ZEPPELIN_HOME>/interpreter/spark/spark-sap-datasources-assembly.jarCaution
+If you do not use a unified name for the JAR file:○
+Make sure that there is only one spark-sap-datasources-<VERSION>-assembly.jar file in the folder.○
+If you did not use a wildcard in the ADD_JARS variable, remember that you need to update this variable in the <ZEPPELIN_HOME>/conf/zeppelin-env.sh file.c.
+Start the Zeppelin server again:
+$ <ZEPPELIN_HOME>/bin/zeppelin-daemon.sh start
+Related InformationInstall the SAP HANA Vora Spark Extension Library [page 16]2.10 Set Up SAP HANA Spark Controller
+Set up the Spark Controller so that you can query tables accessible through Spark from SAP HANA.Prerequisites
+The Spark Controller is already installed and configured as described in the SAP HANA Spark Controller Installation and Configuration document, attached in SAP Note 2177933.Procedure1.
+Make the SAP HANA Vora data sources package available to the Spark Controller.
+Copy spark-sap-datasources-<VERSION>-assembly.jar to the folder /usr/sap/spark/controller/lib/.
+Make sure that you copy the same version that you are using to create tables. Compatibility between different packages is not always guaranteed.2.
+Configure the Spark Controller.
+The Spark Controller needs to be made aware of the metadata storage location of the SAP HANA Vora tables and the hosts that run SAP HANA Vora.
+24
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved.
+SAP HANA Vora Installation and Developer Guide
+Installation
+To do this, add the configuration properties spark.vora.hosts and spark.vora.zkurls to the file /usr/sap/spark/controller/conf/hanaes-site.xml, as shown below. Adjust the values as follows:○
+IP_ADDRESSES_OF_VORA_HOSTS: A comma-separated list of host names or IP addresses of all machines running SAP HANA Vora.○
+IP_ADDRESS_OF_ZOOKEEPER: The host name or IP address of the host running ZooKeeper.
+In both cases, include the TCP port as well and do not use whitespaces in the values.
+<property>
+<name>spark.vora.hosts</name>
+<value>IP_ADDRESSES_OF_VORA_HOSTS</value>
+<final>true</final>
+</property>
+<property>
+<name>spark.vora.zkurls</name>
+<value>IP_ADDRESS_OF_ZOOKEEPER</value>
+<final>true</final>
+</property>Example
+<property>
+<name>spark.vora.hosts</name>
+<value>10.0.0.1:2022,10.0.0.2:2022,10.0.03:2022</value>
+<final>true</final>
+</property>
+<property>
+<name>spark.vora.zkurls</name>
+<value>10.0.0.1:2181</value>
+<final>true</final>
+</property>3.
+Restart the Spark Controller.
+For the configuration changes to take effect, restart the Spark Controller, for example, using the following commands:
+$ cd /usr/sap/spark/controller/bin
+$ ./hanaes stop
+$ ./hanaes start4.
+Verify the configuration changes.
+To verify whether the configuration changes were successful, check the Spark Controller log file: /var/log/hanaes/hana_controller.log
+After initialization, the file should contain the following line at the end:
+(DATE and TIME) INFO CommandRouter: Picked up HanaESVoraContext
+If this line is missing, double-check whether the spark-sap-datasources-<VERSION>-assembly.jar is present and the configuration settings are correct.
+SAP HANA Vora Installation and Developer Guide
+Installation
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved. 25
+Results
+After successful configuration, you can see the tables stored in SAP HANA Vora in SAP HANA Studio, and you can add virtual tables and submit queries, as described in the SAP HANA Spark Controller Installation and Configuration document.
+Related InformationSAP Note 2177933
+26
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved.
+SAP HANA Vora Installation and Developer Guide
+Installation
+3 Development
+SAP HANA Vora allows you to develop applications from a Spark-based environment using its provided data sources and Spark extensions.
+See the following topics:
+Topic
+DescriptionGetting Started [page 27]
+Learn how to access the provided data sources from SparkUsing the SAP HANA Vora Data Source [page 29]
+Use SAP HANA Vora as an in-memory database in your Spark programming environmentWorking with Hierarchies [page 36]
+Build hierarchical data structures and query hierarchical dataUsing the SAP HANA Data Source [page 42]
+Access SAP HANA data from a Spark-based environmentExtended Data Sources API [page 46]
+Leverage the full integration between Spark and SAP HANA Vora using advanced data source featuresSystem Architecture [page 48]
+Familiarize yourself with the components involved in the SAP HANA Vora Spark programming environment3.1 Getting Started
+To develop applications from a Spark-based environment using the provided data sources and Spark extensions, follow the preparatory steps outlined below. These demonstrate, in particular, how to access the SAP HANA Vora and SAP HANA data sources from Spark.Using the Package with the Spark Shell
+You can add the data source package to Spark using the --jars command line option. For example, to include it when you start the Spark shell, use the following:
+$ bin/spark-shell --jars [SPARK_VORA_INSTALLATION]/lib/*.jarsSetting Up the Project
+You need to link your Scala project to the modules you are using and to the core module contained in the extensions package. This is necessary because both the SAP HANA Vora and SAP HANA data source modules depend on the core module. To use the resulting program in a cluster environment, we recommend that you
+SAP HANA Vora Installation and Developer Guide
+Development
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved. 27
+build a shaded JAR. We also recommend that you use IntelliJ the first time you load the project, since it will automatically load the dependencies in the pom.xml file as well.Accessing Data Sources
+You can use the SAP HANA Vora data source or SAP HANA data source in Spark by creating a table:1.
+Create a SapSQLContext
+Before you can create the table, you need to instantiate a SapSQLContext. A SapSQLContext is based on a SparkContext object.2.
+Create a table
+You can register a table in Spark using the Spark SQL command CREATE TABLE. You need to provide a table name and the fully qualified name of the source package (USING <data_source>):○com.sap.spark.vora for the SAP HANA Vora data source○com.sap.spark.hana for the SAP HANA data source
+You also need to provide a set of options required by the data source.
+The example below shows how a table is created using the SAP HANA Vora data source, based on a file in HDFS. It is assumed that the sample code is executed in a Spark shell:Sample Code
+import org.apache.spark.sql._
+val sqlc = new SapSQLContext(sc)
+sqlc.sql(
+s"""CREATE TABLE testTableName (column1 string, column2 integer)
+USING com.sap.spark.vora
+OPTIONS (
+tableName "testTableName",
+paths "/path/to/file.csv",
+zkurls "zookeeper.host1.com:2181",
+nameNodeUrl "namenode.host.com:8020")""".stripMargin)
+Note that all options shown above can be set in the SparkConf or in the SQLContext configuration. The specified NameNode URL indicates that the file is contained in HDFS.Executing Queries
+You can execute queries in the same way as in Spark SQL. You can also join tables regardless of their origin, but you should bear in mind that there may be differences in performance. For example, if you join a table from a SAP HANA data source with one from a SAP HANA Vora data source, this might require data to be offloaded to Spark.
+Related InformationUsing the SAP HANA Vora Data Source [page 29]
+28
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved.
+SAP HANA Vora Installation and Developer Guide
+Development
+Using the SAP HANA Data Source [page 42]Working with Hierarchies [page 36]3.2 Using the SAP HANA Vora Data Source
+The SAP HANA Vora data source allows you to improve Spark performance by using SAP HANA Vora as an in-memory database. It supports an enhanced data source API implementation that enables you to create Spark DataFrames in a local or distributed file system.
+Related InformationQuerying Data [page 29]Code Examples [page 32]SAP HANA Vora Data Source API [page 34]Working with Hierarchies [page 36]3.2.1 Querying Data
+You can execute queries in the same way as in Spark SQL. The examples below show the syntax of some basic queries you can use to work with the SAP HANA Vora data source.Creating Tables
+A CREATE TABLE statement registers the table with the Spark sqlContext and creates a table in the SAP HANA Vora engine.SQLSample Code
+CREATE TABLE testTableName (column1 string, column2 integer)
+USING com.sap.spark.vora
+OPTIONS (
+tableName "testTableName",
+paths "/path/to/file1.csv,/path/to/file2.csv",
+zkurls "zookeeper.host1.com:2181, zookeeper.host2.com:2181",
+nameNodeUrl "namenode.host.com:8020"
+)Programmatically (Scala)
+SAP HANA Vora Installation and Developer Guide
+Development
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved. 29
+Sample Code
+val voraTable = sqlc.read.format(source).schema(schema).options(options).load()
+To allow a table that has already been created to be registered with the Spark sqlContext, a CREATE TABLE statement will succeed if the provided SCHEMA and the provided metadata (hosts, paths, csv delimiter, csv quote, csv null value, format) are the same as those of the existing table, or if no SCHEMA information is provided at all.
+The semantics of the CREATE TABLE statement are explained below:●
+CREATE TABLE with SCHEMA information (typical case)○
+If the table with the given name does not yet exist, the table is created and registered in the Spark context.○
+If the table with the given name already exists and the specified schema and table metadata match those of the existing table, the table will be registered in the Spark context. If these conditions are not met, the statement will fail and the table will not be registered.Note
+If the paths option is not provided in the specified metadata, it is assumed to be the same as that of the given table.●
+CREATE TABLE without SCHEMA information○
+If the table with the given name does not yet exist, the statement will fail and the table will not be registered.○
+If the table with the given name already exists, the table will be registered in the Spark context.Showing Tables in Data Sources
+All tables that are persisted in the SAP HANA Vora in-memory database can be listed using the SHOW DATASOURCETABLES statement, as shown in the example below:Sample Code
+SHOW DATASOURCETABLES USING com.sap.spark.vora
+OPTIONS(
+zkurls "zookeeper.host1.com:2181, zookeeper.host2.com:2181",
+nameNodeUrl "namenode.host.com:8020"
+)Importing Tables from a Data Source
+Tables created in Spark exist only for the lifetime of a particular Spark sqlContext.
+30
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved.
+SAP HANA Vora Installation and Developer Guide
+Development
+REGISTER TABLE
+You can use the REGISTER TABLE <table_name> USING … OPTIONS … <IGNORING CONFLICTS> statement to register a table in the Spark context. This corresponds to a CREATE TABLE statement where the table already exists. However, no additional metadata or schema information is needed to perform the registration:
+REGISTER TABLE tablename
+USING com.sap.spark.vora
+OPTIONS(
+zkurls "zookeeper.host1.com:2181, zookeeper.host2.com:2181",
+nameNodeUrl "namenode.host.com:8020"
+)
+An error is thrown if the table already exists in Spark, but you can enforce the action by using the IGNORING CONFLICTS clause.REGISTER ALL TABLES
+All tables already created with the SAP HANA Vora data source can be registered in the Spark context using the following statement:Sample Code
+REGISTER ALL TABLES USING com.sap.spark.vora
+OPTIONS(
+zkurls "zookeeper.host1.com:2181, zookeeper.host2.com:2181",
+nameNodeUrl "namenode.host.com:8020"
+)Appending Data to Existing Tables
+You can add more data to tables as shown in the example below:Sample Code
+APPEND TABLE testTableName OPTIONS (paths "path1/to/file/file1.csv,path2/to/file/file2.csv", eagerLoad "true")
+Note that the only options you can specify in this command are paths and eagerLoad. Any other options are ignored.Dropping Tables
+The DROP TABLE command drops the specified table in the Spark context and also deletes the corresponding in-memory SAP HANA Vora table. You can therefore use it to free cluster memory:
+SAP HANA Vora Installation and Developer Guide
+Development
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved. 31
+Sample Code
+DROP TABLE testTableName
+If the specified table is referenced more than once in the ZooKeeper catalog, the drop table action will fail. This could happen if, for example, the table is used in a number of views.
+Add the CASCADE suffix to the DROP TABLE statement to drop both the table and every entry in the catalog that references that table.Clearing the ZooKeeper Catalog for Test Purposes
+The ClusterUtils objects contains a method named clearZooKeeperCatalog(), which allows you to wipe out all metadata in ZooKeeper. This method is very useful for advanced users who want to make their scenarios and tests idempotent.
+Related InformationCode Examples [page 32]SAP HANA Vora Data Source API [page 34]3.2.2 Code Examples
+The following code examples show how a table can be created and queried in Spark using the SAP HANA Vora data source.Code Example: Create and Query a Table with SQLSample Code
+import org.apache.spark.sql._
+/*
+Csv file that just contains:
+John,10
+Jane,20
+John,20
+Jane,40
+*/
+val sqlc = new SapSQLContext(sc)
+/* Table name used to register the relation into the Spark schema */
+val tableName = "testTable"
+/* Source package needed to use the Vora source */
+32
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved.
+SAP HANA Vora Installation and Developer Guide
+Development
+val source = "com.sap.spark.vora"
+/* Creating the new table */
+sqlc.sql(
+s"""CREATE TABLE $tableName (name string, age integer)
+USING $source
+OPTIONS (
+tableName "$tableName",
+paths "/path/to/file.csv",
+zkurls "zookeeper.host1.com:2181",
+nameNodeUrl "namenode.host.com:8020"
+)""".stripMargin)
+/*
+Jane,20
+John,20
+Jane,40
+*/
+val queryResult = sqlc.sql("SELECT name, age from testTable where age > 10")
+queryResult.collect().foreach(println)
+/*
+John,15.0
+Jane,30.0
+*/
+val aggregationResult = sqlc.sql("SELECT name, AVG(age) AS avgAge from
+testTable GROUP BY name")
+aggregationResult.collect().foreach(println)
+Code Example: Create and Query a Table Programmatically
+This example uses Spark DataFrames. For information about programming with DataFrames, see the Spark SQL and DataFrame Guide.Sample Code
+import org.apache.spark.sql._
+import org.apache.spark.sql.types._
+/*
+Csv file that just contains:
+John,10
+Jane,20
+John,20
+Jane,40
+*/
+val stds1 = "..." // Some path to a csv file
+val sqlc = new SapSQLContext(sc)
+/* Source package needed to use the Vora source */
+val source = "com.sap.spark.vora"
+/* Table schema */
+val schema = StructType(
+StructField("name", StringType, nullable = true) ::
+StructField("age", IntegerType, nullable = true) :: Nil
+)
+val options = Map(
+/* Table name used in Vora nodes */
+"tableName" -> "voraTable",
+/* Comma-separated CSV file paths */
+"paths" -> stds1,
+"zkurls" -> "zookeeper.host1.com:2181",
+"nameNodeUrl" -> "namenode.host.com:8020"
+)
+/* Creating the new table */
+val voraTable = sqlc.read.format(source).schema(schema).options(options).load()
+SAP HANA Vora Installation and Developer Guide
+Development
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved. 33
+/*
+Jane,20
+John,20
+Jane,40
+*/
+val queryResult = voraTable.select("name", "age").where(voraTable("age") > 10)
+queryResult.collect().foreach(println)
+/* We need to import this to use the different sql functions like MAX, MIN or
+AVG */
+import org.apache.spark.sql.functions._
+/*
+John,15.0
+Jane,30.0
+*/
+val aggregationResult = voraTable.select("name", "age").groupBy("name").agg(avg("age").as("avgAge"))
+aggregationResult.collect().foreach(println)
+Related InformationSAP HANA Vora Data Source API [page 34]Spark SQL and DataFrame Guide3.2.3 SAP HANA Vora Data Source API
+The SAP HANA Vora data source API provides several configurable options.
+Name
+Description
+Default Value
+Example
+hosts
+Comma-separated list of SAP HANA Vora hosts in <host>:<port> format. If you do not specify a port it will be set to the default value (port option or 2202 if omitted).
+None
+vora.host1.com:2202,vora.host2.com
+paths
+Comma-separated list of file paths to be uploaded to SAP HANA Vora.
+None
+path/to/file1.csv,path/to/file2.csv
+tablename
+Table name on the SAP HANA Vora query engine.
+None
+testTable
+replication
+Determines whether or not the table is replicated on each SAP HANA Vora instance. If set to true, the table will be replicated on some of the SAP HANA Vora instances. If set to false, the table will instead be partitioned on the SAP HANA Vora instances.
+false
+Boolean
+schema
+Table schema used to create the SAP HANA Vora table. This parameter is only recommended if you specifically want to use special SAP HANA Vora data types that are not directly supported in Spark.
+For more information about the standard way of setting the schema in Spark, see the code examples.
+None
+name varchar(*), age integer
+34
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved.
+SAP HANA Vora Installation and Developer Guide
+Development
+Name Description Default Value Example
+csvdelimiter
+Delimiter used to parse csv files.
+,
+;
+zkurls
+Comma-separated list of ZooKeeper hosts in <host>:<port> format.
+None
+zk.host1.com:2181,zk.host2.com:2181
+namenodeurl
+HDFS NameNode URL in <host>:<port> format.
+None
+namenode.host.com:8020
+null
+Default value for parsing NULL fields in CSV files.
+NULL
+null
+local
+Flag used to execute the data source in local mode. It uses a non-persisted local catalog and a non-distributed locking system. It is used only for test purposes.
+false
+Boolean
+eagerload
+If true, the table is loaded into memory by the CREATE TABLE statement. If false, the table is loaded in the first query execution that uses the table.
+true
+Boolean
+port
+Port used by default in all SAP HANA Vora connections.
+2202
+2000
+memoryhealthy
+Below this level of memory consumption, SAP HANA Vora loads data directly into memory.
+None
+5G
+memorycritical
+Larger than memoryhealthy. If this threshold is reached, SAP HANA Vora starts to spill data to disk until the main memory consumption is below the memoryhealthy threshold.
+None
+8G
+memorymaximum
+If memory consumption exceeds this limit, SAP HANA Vora exits with an out of memory exception.
+None
+10G
+format
+Format used to read the data.
+csv
+csv
+datapath
+Path used for data inserts.
+None
+System.getProperty("java.io.tmpdir")
+minclientthreads
+Number of threads to keep in the pool even if they are idle.
+0
+4
+maxclientthreads
+Maximum number of threads to allow in the pool.
+Number of available processors * 2
+20
+resolvehostnames
+Indicates if host names should be resolved to IP addresses.
+true
+Boolean
+You can set all properties globally in the spark-defaults.conf file by adding the prefix spark.vora. For more information about how to configure the variables in a convenient manner for users, see the best practice topic Example Cluster Configuration.
+Related InformationExample Cluster Configuration Including a Client Machine (Jump Box) [page 58]
+SAP HANA Vora Installation and Developer Guide
+Development
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved. 35
+3.3 Working with Hierarchies
+Hierarchical data structures define a parent-child relationship between different data items, providing an abstraction that makes it possible to perform complex computations on different levels of data.
+An organization, for example, is basically a hierarchy where the connections between nodes (for example, manager and developer) are determined by the reporting lines that are defined by that organization.
+Since it is very difficult to use standard SQL to work with and perform analysis on hierarchical data, Spark SQL has been enhanced to provide missing hierarchy functionality. Extensions to Spark SQL support hierarchical queries that make it possible to define a hierarchical DataFrame and perform custom hierarchical UDFs on it. This allows you, for example, to define an organization’s hierarchy and perform complex aggregations, such as calculating the average age of all second- level managers or the aggregate salaries of different departments.
+To support hierarchies, Spark has been extended in the following ways:●
+The parser has been extended with hierarchy syntax that allows you to define a hierarchy. In addition, a list of UDFs is available for performing calculations on hierarchy tables. For example, IS_ROOT returns true if a row in a hierarchy table represents a root node.●
+Two strategies have been made available for generating hierarchical DataFrames, where one uses self joins and the other broadcasts the hierarchy structure.●
+Since the SAP HANA Vora execution engine supports hierarchies, support has been added for pushing down hierarchical queries to SAP HANA Vora using the data source implementation.
+Related InformationRepresenting Hierarchies as Adjacency Lists [page 36]Creating Hierarchies [page 38]Joining Hierarchies with Other Tables [page 39]Using Hierarchies with Views [page 41]Hierarchy UDFs [page 42]3.3.1 Representing Hierarchies as Adjacency Lists
+You build a hierarchy using an adjacency list that defines the edges between hierarchy nodes. The adjacency list is read from a source table where each row of the source table becomes a node in the hierarchy.
+The hierarchy SQL syntax allows you to define the adjacency list and tweak it. It also allows you to determine how the hierarchy is created by controlling the order of the children of each node and by explicitly determining the roots of the hierarchy.
+A source table representing the predecessors and successors of the hierarchy is a prerequisite for creating hierarchies with the SAP HANA Vora Spark hierarchy extension.
+36
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved.
+SAP HANA Vora Installation and Developer Guide
+Development
+Example Hierarchy
+The hierarchy to be represented as an adjacency list:Example Hierarchy Table
+The table h_src is used to represent the hierarchy shown above. It defines a basic hierarchy between predecessors and successors:h_src
+name
+pred
+succ
+ord
+Chief Executive Officer
+None
+1
+1
+Project Manager
+1
+2
+1
+Sales Manager
+1
+3
+2
+Project Coordinator
+2
+4
+1
+Architect
+2
+5
+2
+Programmer
+4
+6
+1
+Designer
+4
+7
+2
+SAP HANA Vora Installation and Developer Guide
+Development
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved. 37
+Example Fact Table
+You generally have another table as well, referred to as a fact table, which contains other data associated with the hierarchy. In this example, the fact table contains addresses:addresses
+name
+address
+Chief Executive Officer
+25 Park Lane, London
+Project Manager
+20 Euston Road, London
+Project Coordinator
+12 Abbey Road, London
+Designer
+5 Carnaby Street, London
+Consultant
+16 Portobello Road, London
+Related InformationCreating Hierarchies [page 38]Joining Hierarchies with Other Tables [page 39]3.3.2 Creating Hierarchies
+You create a hierarchy using an SQL statement. To create a hierarchy, you require a table that specifies the relations between the predecessors and successors of the hierarchy.
+For example, you have a table called h_src that contains two columns, pred and succ, showing predecessors and successors respectively. You can then use the following statement to create and query the hierarchy:Sample Code
+SELECT name, IS_ROOT(node) FROM HIERARCHY (
+USING h_src AS v
+JOIN PARENT u ON v.pred = u.succ
+SEARCH BY ord ASC
+START WHERE pred IS NULL
+SET node
+) AS H
+The clauses in the statement are used as follows:●JOIN PARENT <alias> <equality_expression>: Defines how the adjacency list is constructed. In this example it states that any two rows in h_src have an edge between them in the hierarchy if the child row's pred column is equal to the parent row's succ column. This clause is mandatory.●SEARCH BY <order_by_expression>: Determines the order of the children when the hierarchy is constructed. The order is relevant for some UDFs, such as IS_PRECEDING and IS_FOLLOWING, and can
+38
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved.
+SAP HANA Vora Installation and Developer Guide
+Development
+be defined by the user. This clause is optional. If it is not defined and UDFs are used that depend on the order of the children, the results returned are undefined.●START WHERE <condition>: Defines the roots of the hierarchy. Any row that matches the specified condition is considered a root in the hierarchy forest. This clause is also optional. If omitted, the roots of the hierarchy are determined by scanning all source table rows and identifying those that do not have a parent.●SET <node_column_name>: Names the newly created node column. The new hierarchy relation is created with the same schema as that of h_src but also contains the additional node column (in the query above it is called node), which is internal and used for hierarchy operations. For each row in the hierarchy relation, this column contains the information necessary to specify its location in the hierarchy. Note that the column must not be used in a top-level query unless it is inside a hierarchy UDF.
+Related InformationRepresenting Hierarchies as Adjacency Lists [page 36]Hierarchy UDFs [page 42]3.3.3 Joining Hierarchies with Other Tables
+Since a hierarchy is simply a Spark DataFrame, this means that it can be used in any valid SQL statement. This includes statements for creating joins between it and other tables.
+In the examples below, which show how to perform inner joins and left joins, the hierarchy h_src is joined with the addresses table in order to output the name, address, and level of the employee in the tree. This can be achieved as follows:●
+Inner joinSample Code
+SELECT B.name, A.address, B.level
+FROM
+(SELECT name, LEVEL(node) AS level FROM HIERARCHY (
+USING h_src AS v
+JOIN PARENT u ON v.pred = u.succ
+SEARCH BY ord ASC
+START WHERE pred IS NULL
+SET node)
+AS H) B, addresses A
+WHERE B.name = A.name
+Result:
+name
+address
+level
+Chief Executive Officer
+25 Park Lane, London
+1
+Project Manager
+20 Euston Road, London
+2
+SAP HANA Vora Installation and Developer Guide
+Development
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved. 39
+name address level
+Project Coordinator
+12 Abbey Road, London
+3
+Designer
+5 Carnaby Street, London
+4●
+Left outer joinSample Code
+SELECT A.name, B.address, A.level
+FROM
+(SELECT name, LEVEL(node) AS level FROM HIERARCHY (
+USING h_src AS v
+JOIN PARENT u ON v.pred = u.succ
+SEARCH BY ord ASC
+START WHERE pred IS NULL
+SET node)
+AS H) A LEFT OUTER JOIN addresses B
+ON A.name = B.name
+Result:
+name
+address
+level
+Chief Executive Officer
+25 Park Lane, London
+1
+Project Manager
+20 Euston Road, London
+2
+Sales Manager
+null
+2
+Project Coordinator
+12 Abbey Road, London
+3
+Architect
+null
+3
+Programmer
+null
+4
+Designer
+5 Carnaby Street, London
+4
+Note that right joins and full outer joins can also be done in a similar manner.
+Related InformationRepresenting Hierarchies as Adjacency Lists [page 36]
+40
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved.
+SAP HANA Vora Installation and Developer Guide
+Development
+3.3.4 Using Hierarchies with Views
+You have the option of using a view to create a hierarchy. Once created, the view can be used to perform SQL queries with hierarchy UDFs (user-defined functions).Creating a Hierarchy View
+The statement below can be used to create a hierarchy view. It uses the example hierarchy table h_src:
+CREATE VIEW HV AS SELECT * FROM HIERARCHY (
+USING h_src AS v
+JOIN PARENT u ON v.pred = u.succ
+SEARCH BY ord ASC
+START WHERE pred IS NULL
+SET Node) AS H
+The above command creates a view named HV that wraps a hierarchy. From now on, the view name can be used in a SQL query and will be replaced with the underlying hierarchy.Joining the Hierarchy View
+In the following example, the hierarchy view is joined with itself in order to get the names of the children of the root:
+SELECT Children.name
+FROM HV Children, HV Parents
+WHERE IS_ROOT(Parents.Node) AND IS_PARENT(Parents.Node, Children.Node)
+To select the addresses of all the descendants of the second-level employees, a two-level join is needed:●
+The inner join calculates the descendants of the second-level employees.●
+The outer join joins the result with the addresses table and gathers the names and the addresses.
+SELECT Emp.name, Addresses.address
+FROM
+(SELECT Descendants.name AS name
+FROM HV Parents, HV Descendants
+WHERE IS_DESCENDANT(Descendants.Node, Parents.Node) AND LEVEL(Parents.Node) = 2
+) Emp,
+Addresses
+WHERE Emp.name = Addresses.name
+SAP HANA Vora Installation and Developer Guide
+Development
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved. 41
+3.3.5 Hierarchy UDFs
+This list shows the user-defined functions (UDFs) that can be used with hierarchies.
+UDF
+Description
+level(u)
+Returns the level of the node in the tree
+is_root(u)
+True if the node is a root, otherwise false
+is_descendant(u,v)
+True if node u is a descendant of node v
+is_descendant_or_self(u,v)
+Node u equals node v or is_descendant(u,v)
+is_ancestor(u,v)
+True if node u is an ancestor of node v
+is_ancestor_or_self(u,v)
+Node u equals node v or is_ancestor(u,v)
+is_parent(u,v)
+Node u is a parent of node v
+is_child(u,v)
+Node u is a child of node v
+is_sibling(u,v)
+Node u is a sibling of node v
+is_following(u,v)
+Node u follows node v in preorder and is not a descendant of v
+is_preceding(u,v)
+Node u precedes node v in preorder and is not a descendant of v3.4 Using the SAP HANA Data Source
+The SAP HANA data source provides a pluggable mechanism for accessing data stored in SAP HANA from a Spark-based environment through Spark SQL. It includes an enhanced data source API implementation that supports predicate pushdown for all predicates that SAP HANA can process.
+Related InformationQuerying Data [page 43]Code Example [page 44]Pushing Down SAP HANA UDFS [page 45]SAP HANA Data Source API [page 46]
+42
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved.
+SAP HANA Vora Installation and Developer Guide
+Development
+3.4.1 Querying Data
+You can execute queries in the same way as in Spark SQL. The examples below show the syntax of some basic queries you can use to work with the SAP HANA data source.Creating Tables
+A CREATE TABLE statement registers the table with the Spark sqlContext and creates a table in the SAP HANA database.Sample Code
+CREATE TABLE $tableName
+USING com.sap.spark.hana
+OPTIONS (
+path "$tableName",
+dbschema "$dbSchema",
+host "$host",
+instance "$instance",
+user "$user"
+passwd "$passwd"
+)
+To allow a table that has already been created to be registered with the Spark sqlContext, a CREATE TABLE statement will succeed if the provided SCHEMA is the same as that of the existing table, or if no SCHEMA information is provided at all.
+The semantics of the CREATE TABLE statement are explained below:●
+CREATE TABLE with SCHEMA information (typical case)○
+If the table with the given name does not yet exist, the table is created and registered in the Spark context.○
+If the table with the given name already exists and the specified schema matches that of the existing table, the table will be registered in the Spark context. If these conditions are not met, the statement will fail and the table will not be registered.●
+CREATE TABLE without SCHEMA information○
+If the table with the given name does not yet exist, the statement will fail and the table will not be registered.○
+If the table with the given name already exists, the table will be registered in the Spark context.Note
+If a table is created that does not yet exist, it will only be persisted if data is inserted into it.
+SAP HANA Vora Installation and Developer Guide
+Development
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved. 43
+Inserting Data
+Data can be loaded into a table in the SAP HANA database from a DataFrame in Spark as follows:Sample Code
+dataFrame.write.format("com.sap.spark.hana").mode(SaveMode.Append).options(tableConf).save()
+In general for all save modes, if the table does not yet exist in SAP HANA, a new table is created in the SAP HANA database with the DataFrame’s schema and data is inserted into that table. If the table already exists in SAP HANA, the behavior is as follows:
+SaveMode.Append
+Data is appended to the existing table.
+SaveMode.Overwrite
+Data of the current table is dropped and new data is inserted.
+SaveMode.ErrorIfExists
+The statement fails and no changes are made to the existing table.
+SaveMode.Ignore
+The statement doesn’t fail and no changes are made to the existing table.Dropping Tables
+The DROP TABLE command drops the specified table in the Spark context and also deletes the corresponding in-memory SAP HANA table (provided it exists and the SAP HANA user is allowed to perform the action):Sample Code
+DROP TABLE testTableName3.4.2 Code Example
+The following code example shows how a table can be created and queried in Spark using the SAP HANA data source.Sample Code
+import org.apache.spark.sql._
+import org.apache.spark.sql.types._
+val nameNodeHostAndPort = "name.node.mycompany.corp:8020"
+val pathToCsvFile = "/path/to/file.csv"
+val sqlc = new SapSQLContext(sc)
+// this table name holds for HANA as well as for the Vora instance
+val tableName = "people_test"
+//Database Schema Name
+val dbSchema = "dbschema"
+// HANA Host instance
+val host = "hana.host1.com"
+44
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved.
+SAP HANA Vora Installation and Developer Guide
+Development
+// HANA instance ID
+val instance = "02"
+//User name and password
+val user = "myuser"
+val passwd = "mzpassword"
+/* Creating the new table */
+sqlc.sql(
+s"""CREATE TABLE $tableName (name string, age integer)
+USING com.sap.spark.hana
+OPTIONS (
+path "$tableName",
+dbschema "$dbSchema",
+host "$host",
+instance "$instance",
+user "$user",
+passwd "$passwd")""".stripMargin)
+val dataRDD = sc.textFile("hdfs://$nameNodeHostAndPort$pathToFile")
+val rowRDD = dataRDD.map(_.split(",")).map(p => org.apache.spark.sql.Row(p(0),p(1).toInt))
+val schema = StructType(Array(StructField("name",StringType,false),StructField("age",IntegerType,false)))
+val dataframe = sqlc.createDataFrame(rowRDD, schema)
+val configuration = Map(("host"-> host), ("instance"-> instance), ("user"-> user), ("passwd"-> passwd))
+val writeOptions = configuration + ("path" -> tableName) + ("dbschema" -> dbSchema)
+dataFrame.write.format("com.sap.spark.hana").mode(SaveMode.ErrorIfExists).options(writeOptions).save()
+val queryResult = sqlc.sql("SELECT name, age from people_test where age > 10")
+queryResult.collect().foreach(println)
+3.4.3 Pushing Down SAP HANA UDFS
+The SAP HANA data source allows you to use UDFs that are implemented solely in SAP HANA (that is, they do not exist in Spark). You can do this by using the "$" prefix.
+The following example shows how to push down a unit of measure conversion:Sample Code
+import org.apache.spark.sql._
+val sqlc = new SapSQLContext(sc)
+lazy val configuration = Map(("host"->"hana.host1.com"),
+("instance"->"02"),
+("user"->"myuser"),
+("passwd"->"secret"))
+lazy val sampleInputConf =
+configuration + ("path" -> "SAMPLE_INPUT") + ("dbschema" -> "SAPCCH")
+sampleInputRelation =
+sqlc.read.format("com.sap.spark.hana").options(sampleInputConf).load()
+sampleInputRelation.registerTempTable("SAMPLE_INPUT")
+var query = sqlc.sql("Select $CONVERT_UNIT" +
+"(QUANT,SOURCE_UNIT,'SAPCCH',TARGET_UNIT,'000') as converted " +
+"FROM SAMPLE_INPUT")
+queryResult.collect().foreach(println)
+SAP HANA Vora Installation and Developer Guide
+Development
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved. 45
+3.4.4 SAP HANA Data Source API
+The SAP HANA data source API provides several configurable options.
+Name
+Description
+Default Value
+Example
+host
+Host name of the SAP HANA server
+None
+hana.host1.com
+instance
+This is a double digit number which computes the local port used to access the SAP HANA server.
+The local port is derived from the local instance number as 3<instance number>15. For example, if the instance number is 02, then the local port will be 30215.
+None
+02
+path
+SAP HANA database table or view
+None
+tableName
+dbschema
+SAP HANA database schema of the table specified in the option above
+SYSTEM
+mySchema
+user
+SAP HANA database user
+None
+user
+passwd
+Password for the SAP HANA database user specified in the option above
+None
+passwd3.5 Extended Data Sources API
+SapSQLContext provides an extended data sources API that is needed to leverage the full integration between Spark and SAP HANA Vora. Note that although the SAP HANA Vora and SAP HANA data sources work both with SQLContext and HiveContext, they will not use the additional performance features unless used with SapSQLContext.
+The extended data sources API provides additional traits that data sources can implement to signal support for advanced features. These traits are PrunedFilteredAggregatedScan, CatalystSource, ExpressionSupport, DropRelation, AppendRelation and SqlLikeRelation.PrunedFilteredAggregatedScan
+This trait is based on the standard PrunedFilteredScan, which provides a data source that can perform a query with a number of selected columns and a limited set of filters (WHERE clauses).
+PrunedFilteredAggregatedScan extends this further to provide support for aggregations (aggregation functions and GROUP BY clauses).
+46
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved.
+SAP HANA Vora Installation and Developer Guide
+Development
+PrunedFilteredExpressionsScan
+This trait is based on the standard PrunedFilteredScan, which provides a data source that can perform a query with a number of selected columns and a limited set of filters (WHERE clauses).
+PrunedFilteredExpressionsScan extends this further to provide support for any expression in the SELECT or WHERE clause.CatalystSource
+CatalystSource allows potentially every query to be completely pushed down to the data source. For a given query or sub-query, it checks if the query can be executed by the data source and, if supported, pushes it down completely.
+CatalystSource provides a very tight integration between the data source and Spark’s query optimizer, Catalyst. While this allows the maximum degree of flexibility, it also requires deep knowledge of Catalyst internals to implement it properly.
+The SAP HANA Vora and SAP HANA data sources use CatalystSource to convert a Catalyst logical plan back to a full SQL query that can be sent to the SAP HANA Vora processing engine.
+SAP HANA Vora Installation and Developer Guide
+Development
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved. 47
+3.6 System Architecture
+The main components used in the SAP HANA Vora Spark development environment are shown in the figure below.
+48
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved.
+SAP HANA Vora Installation and Developer Guide
+Development
+Query Server
+The query server is based on the Hive Thrift server. It creates a SapSQLContext, which is an extension of the HiveContext. Any client implementing or using a library that implements the Hive Thrift server protocol can execute any compatible query on it.
+The query server is in charge of creating and handling the Spark context. Any Spark job that is executed and requires a connection to the system must use the same SapSQLContext.Zeppelin
+Zeppelin is a web-based console that allows you to execute queries on a Spark cluster. The SAP HANA Vora integration package allows the Spark Vora features to be used from Zeppelin.SAP HANA Vora Spark
+The SAP HANA Vora Spark component is an extension of Spark SQL. It keeps the standard features available in Spark and adds new functionality customized for SAP HANA Vora. There are four main extensions:●
+DDL/SQL parsers: These provide the SAP HANA Vora commands, such as APPEND and DROP, and also extend the SQL grammar to handle hierarchy commands.●
+Analyzer: Handles hierarchy analysis.●
+Planner: Provides the pushdown strategies for aggregations, functions, hierarchies, and so on.●
+Function registration: The new functions handled by SAP HANA Vora have been included in the ones supported by Spark.Discovery Service
+It keeps the running status of a node, that is, failed or healthy. This status is required in order to apply recovery policies and implement failover strategies. When a failing node is detected, it is updated so that it can be recovered.SAP HANA Vora Catalog
+It is necessary for the SAP HANA Vora Spark component to store metadata information relevant to the program workflow. The catalog provides a store for storing and retrieving generic hierarchical and versioned key values, which are required to synchronize parallel updates.
+The catalog also acts as a proxy to other metadata stores, such as HDFS NameNode, and caches their metadata locally for better performance. It also determines the preferred locations of a given file stored on HDFS based on the locations of its blocks.
+SAP HANA Vora Installation and Developer Guide
+Development
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved. 49
+The catalog interface currently has two implementations: a ZooKeeper implementation, which is used for the production environment, and a local implementation, which is used for testing.
+If ZooKeeper is used all metadata is stored under the path /com/sap/spark.Lock Manager
+The lock manager provides distributed read-write locks, supported by ZooKeeper. This is done to ensure that both the catalog and instances of the query engine keep a consistent state at all times. A write lock occurs whenever data is loaded, while a read lock can occur when data is queried, although this is optional.SAP HANA Vora Client
+This library is used from two types of location: driver and worker. When it is called from a worker, it is simply used to execute a query on a specific SAP HANA Vora node using the JDBC driver.
+Its duties are more extended when it is called from the driver. Besides updating the SAP HANA Vora catalog with the given data and marking a node as failed or healthy when detected, the SAP HANA Vora client is also responsible of handling data loading on SAP HANA Vora nodes.
+In order to get the data loaded, the SAP HANA Vora client:●
+Asks the lock manager to lock the table.●
+Asks the SAP HANA Vora catalog to get the blocks of the table that have not yet been loaded.●
+Asks the SAP HANA Vora catalog about the blocks' locations. The SAP HANA Vora catalog gets that information from the Zookeeper NameNode.●
+Calls the SAP HANA Vora catalog to get the preferred locations for each block and, depending on that, decides where to locate each HDFS block.●
+Loads/appends the specific set of blocks on the corresponding SAP HANA Vora node.●
+Marks those blocks as loaded.●
+Asks the lock manager to release the table lock.
+Note that the SAP HANA Vora client can call SAP HANA Vora nodes directly from the driver without passing through Spark workers.
+50
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved.
+SAP HANA Vora Installation and Developer Guide
+Development
+4 Administration
+There are some standard administration tasks you need to perform and best practices for the ongoing operation of your SAP HANA Vora service and Hadoop cluster.
+See the following topics:
+Topic
+DescriptionStart and Stop the SAP HANA Vora Service [page 51]
+Start, stop, and restart the SAP HANA Vora instances on your clusterStart the SAP HANA Vora Spark Thrift Server [page 53]
+Start the Thrift server to enable JDBC access to the SAP HANA Vora Spark componentSAP HANA Vora Service: Configuration Settings [page 55]
+Configuration options for the SAP HANA Vora engineBest Practices: Administration and Operations [page 56]
+Achieve higher performance on your cluster by observing some basic best practices4.1 Start and Stop the SAP HANA Vora Service
+Use the cluster provisioning tool to start, stop, and restart the SAP HANA Vora instances on your cluster.Context
+SAP HANA Vora instances hold data in memory and boost the performance of the compute nodes. When you stop or restart an instance, the data is removed completely from memory. If SAP HANA Vora is needed to provide acceleration for a specific query again, the fraction of data a certain instance was responsible for has to be reloaded from disk.
+Note that in the procedure below Ambari is used to manage the SAP HANA Vora instances.Procedure1.
+On the Ambari dashboard, select SAP HANA Vora in the Services panel.
+SAP HANA Vora Installation and Developer Guide
+Administration
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved. 51
+The Services summary tab shows how many SAP HANA Vora instances are running, for example, as follows:2.
+On the dashboard, you have the following options:○
+To start, stop, or restart all SAP HANA Vora instances, choose the appropriate option in the Service Actions dropdown menu:
+Option
+Description
+Start
+Starts the SAP HANA Vora service on all hosts
+Stop
+Stops the SAP HANA Vora service on all hosts
+Restart All
+Stops and then starts the SAP HANA Vora service on all hosts
+Restart SAP HANA Voras
+Performs a rolling restart of the SAP HANA Vora service across all hosts. You can specify the following:○
+The number of instances to be started at a time○
+How long to wait between batches○
+The number of allowed restart failures○
+To only restart instances with stale configuration○
+To activate maintenance mode
+Turn On Maintenance Mode
+Suppresses alerts generated by the SAP HANA Vora service○
+To start, stop, or restart SAP HANA Vora instances by host:1.
+Click the SAP HANA Vora Clients link.
+A list of hosts running the SAP HANA Vora service is displayed.
+52
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved.
+SAP HANA Vora Installation and Developer Guide
+Administration
+2.
+Click the relevant host link.
+The component list and host details are displayed.3.
+In the component list, locate the SAP HANA Vora service and choose the appropriate option from the dropdown menu:Next Steps
+After restarting the SAP HANA Vora service, the tables no longer exist in the SAP HANA Vora in-memory database. However, the associated metadata has been retained. To make the SAP HANA Vora instances reload the data, you can use the markAllHostsAsFailed() function in the ClusterUtils object, as follows:1.
+Start the Spark shell.2.
+Run the following function:
+com.sap.spark.vora.client.ClusterUtils.markAllHostsAsFailed()
+As a result, Spark will assume that the SAP HANA Vora instances are empty and reload the data according to the metadata information.4.2 Start the SAP HANA Vora Spark Thrift Server
+The Thrift server enables applications to access the SAP HANA Vora Spark component on the cluster using JDBC. The Thrift server runs as a Spark program.Prerequisites
+To use the shell scripts, you need to have set the SPARK_HOME environment variable.Context
+The delivery package contains shell scripts for starting the server based on the spark-submit command, which automatically uses the configuration options specified for your Spark installation. Once the server has
+SAP HANA Vora Installation and Developer Guide
+Administration
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved. 53
+started, client applications can connect to the SAP HANA Vora Spark component using JDBC, as shown in the figure below:
+Note that applications still need to register tables in Spark to incorporate SAP HANA Vora as a data source. The tables will be persisted as long as the server process runs.
+The Thrift server is generally started from the command line in one of the following ways using the appropriate shell script:●
+As a Spark program●
+As a daemonNote
+It is also possible to start the Thrift server manually as a Spark program using the spark-submit script, but this is less convenient than the options above.Procedure1.
+Change to your SAP HANA Vora Spark installation’s bin directory.2.
+Start the Thrift server using one of the following options:
+Option
+Description
+As a Spark program
+Run the start-sapthriftserver.sh script as follows:
+./start-sapthriftserver.sh
+As a daemon
+Run the start-sapthriftserverd.sh script as follows:
+./start-sapthriftserverd.sh
+54
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved.
+SAP HANA Vora Installation and Developer Guide
+Administration
+Results
+If you have started the Thrift server as a Spark program (rather than as a daemon), you will see an information message similar to the following after initialization:
+INFO ThriftCLIService: ThriftBinaryCLIService listening on x.x.x.x/x.x.x.x:[port_number]
+This message indicates that the Thrift server is up and running and listening for incoming connections.Caution
+Do not close the terminal screen until you have finished using the Thrift server. The Thrift server is not a daemon and by closing the terminal screen you will close the server.Connecting to the Thrift Server
+You can connect to the Thrift server using any client that supports the jdbc:hive2 protocol. You can use the following JDBC connection string:jdbc:hive2://[machine_ip]:[port_number]Stopping the Thrift Server
+To stop the Thrift server, simply close the terminal screen you opened or press CTRL + C in the terminal screen where it is running.Stopping the Daemon
+To stop the daemon, run the following script:
+./stop-sapthriftserverd.sh4.3 SAP HANA Vora Service: Configuration Settings
+Configuration options for the SAP HANA Vora engine, using the Ambari or Cloudera cluster provisioning tool.
+You can change the configuration settings for the SAP HANA Vora service, if necessary, as follows:●
+Ambari: On the SAP HANA Vora service Configs tab, in the Advanced vora-config section.●
+Cloudera: On the SAP HANA Vora service Configuration tab.
+We recommend however that you use the default values.
+SAP HANA Vora Installation and Developer Guide
+Administration
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved. 55
+Users and Groups
+Option
+Description
+Default Value
+OS user
+The operating system user under which the SAP HANA Vora engine runs
+vora
+OS group
+The operating system group under which the SAP HANA Vora engine runs
+vora
+Note that OS users and groups are created during the installation of the SAP HANA Vora engine if they do not yet exist.Logs
+Option
+Description
+Default Value
+Log directory
+The file system location for the SAP HANA Vora engine logs
+/var/log/vora
+Log level
+The level of logging information
+INFO4.4 Best Practices: Administration and Operations
+By observing some basic best practices, you can achieve higher performance on your Hadoop cluster.
+A Hadoop cluster typically involves a very large number of relatively similar computers. In general, a good way to install a cluster is by distinguishing between four types of machines:1.
+Cluster provisioning system with Ambari or Cloudera installed2.
+Master cluster nodes that contain systems such as HDFS NameNodes and central cluster management tools (such as the Yarn resource manager and ZooKeeper servers)3.
+Worker nodes that do the actual computing and contain HDFS data4.
+Jump boxes that contain only client components. These machines allow users to start their jobs.
+Note that if you have a very specific setup where you have, for example, divided compute nodes and HDFS data nodes, this might not be the best choice.
+Related InformationHDFS [page 57]Choosing a Cluster Manager [page 57]Example Cluster Configuration Including a Client Machine (Jump Box) [page 58]
+56
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved.
+SAP HANA Vora Installation and Developer Guide
+Administration
+4.4.1 HDFS
+By default HDFS stores three replicas of each data block on different machines. Besides the necessary fault tolerance, this also increases data locality.
+Be aware of the following, since this might affect the performance of the cluster when it is used in combination with SAP HANA Vora:●
+If the data that is used for SQL processing is not evenly distributed this might lead to longer loading times for tables. This might be the case if you delete a large amount of data (it will be unbalanced) or if you also use HDFS for data that is not used for processing with SAP HANA Vora.●
+Using a lot of small files (that is, smaller than the block size of HDFS) will waste a lot of space.Remember
+It is important to keep the data that you use in SAP HANA Vora/Spark as evenly distributed as possible on HDFS to increase speed. There are a number of HDFS tools available to re-balance the data.4.4.2 Choosing a Cluster Manager
+The cluster manager is responsible for distributing tasks throughout the compute nodes of the cluster. Each node that assumes computation tasks is managed by a cluster manager.
+In order to run, an application requests resources from the cluster manager. If this is successful, the cluster manager transfers the actual application to the nodes in question and starts it.
+The cluster manager therefore serves as an abstraction layer for the application, allowing it to be developed independently of the cluster setup. This means that Spark, as well as all its extensions for SAP HANA Vora, can be installed on a single node and will then be automatically transferred to the compute nodes. The problem with this, however, is that Spark itself also includes a cluster manager, called Spark standalone mode. Logically, however, it is an independent system that is not related to the computational capabilities of Spark.
+The system provided by SAP HANA Vora is completely independent of the cluster manager. If you are deploying a test and development environment with a small number of nodes, we recommend that you choose Spark’s standalone cluster manager. For information about how to install it, see the Spark manual.
+Your Hadoop distribution usually comes with a built-in cluster manager. In most cases, this is Yarn. Yarn distinguishes between Node Managers, which are responsible for a compute node, and the Resource Manager, which keeps track of the overall workload of the cluster and distributes tasks to the Node Managers.Note
+If your cluster manager has central components, such as the Resource Manager, you should put them on separate machines that do not compute jobs.
+SAP HANA Vora Installation and Developer Guide
+Administration
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved. 57
+Related InformationSpark Standalone Mode4.4.3 Example Cluster Configuration Including a Client Machine (Jump Box)
+This example shows how a small Hadoop system consisting of 60 nodes in total can be configured.
+Each node is quite small and contains 32 GB of RAM. Yarn is used as the cluster manager. The nodes are configured as follows:●
+1 Ambari server●
+2 master nodes (Resource Manager, NameNodes, and ZooKeeper server)●
+56 worker/compute nodes●
+1 jump box containing client components
+All components are provisioned by Ambari with the standard settings. Particularly noteworthy is the way the jump box is configured to enable a user to easily deploy applications and use the platform.
+Each user is assigned a separate Linux user, including a home directory containing Spark binaries as well as a shaded JAR of all the components and dependencies provided by SAP. Each user then has the following directory structure:●/home/user/spark: Symlink to the current Spark installation●/home/user/sapjars: Shaded JARs●
+Each user also has a home directory on HDFS
+For convenience, the environment variables are configured as follows in the .profile file:
+# Include spark home
+export SPARK_HOME="$HOME/spark"
+# Hadoop conf dir
+export HADOOP_CONF_DIR="/etc/hadoop/conf"
+export YARN_CONF_DIR="/etc/hadoop/conf"
+export JAVA_HOME="/usr/jdk64/jdk1.7.0_67/"
+export PATH="$PATH:$SPARK_HOME/bin"
+To use the SAP HANA Vora Spark integration component, several system-specific variables need to be configured in Spark. See the developer manual for more details. For convenience, these are configured in the spark-defaults.conf file so that all system-specific variables are located in one place:
+spark.driver.extraJavaOptions -XX:MaxPermSize=256m
+spark.vora.namenodeurl name.node.mycompany.corp:8020
+spark.vora.zkurls zkserv1.mycompany.corp:2181,zkserv2.mycompany.corp:2181
+spark.vora.hosts host1.mycompany.corp,host2.mycompany.corp
+Based on this configuration, users can easily start a shell or deploy an application with the following commands:
+spark-shell --num-executors 3 --driver-memory 4g --executor-memory 2g
+--master yarn-client --jars ~/sapjars/shaded.jar
+58
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved.
+SAP HANA Vora Installation and Developer Guide
+Administration
+spark-submit --class com.sap.spark.vora.example.ExampleQueryHDFS
+--master yarn-client --jars sapjars/shaded.jar SparkVoraTrialProject-0.0.1.jar
+SAP HANA Vora Installation and Developer Guide
+Administration
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved. 59
+5 Security
+When using a distributed system, you need to be sure that your data and processes support your business needs without allowing unauthorized access to critical information. User errors, negligence, or attempted manipulation of your system should not result in loss of information or processing time.
+These demands on security apply likewise to SAP HANA Vora.Security Guides
+SAP HANA Vora functions as an execution engine within a Spark/Hadoop landscape. Therefore, the following security guides outline all applicable security considerations:
+Guide
+Noteworthy SectionsAmbari Security Guide2.3 Optional: Set Up Security for AmbariSpark Security
+Full document
+Related InformationTechnical System Landscape [page 61]Other Security-relevant Information [page 61]
+60
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved.
+SAP HANA Vora Installation and Developer Guide
+Security
+5.1 Technical System Landscape
+SAP HANA Vora integrates into the Hadoop ecosystem, as shown below.
+When installed on nodes in an Ambari cluster, SAP HANA Vora becomes an available service that can be added through the Ambari administration interface provided by the management node, in parallel with existing services.
+Related InformationOther Security-relevant Information [page 61]5.2 Other Security-relevant Information
+The Ambari installation procedure includes a step for installing SAP HANA Vora. This step requires elevated user access (as do several other steps in the installation process) and installs SAP HANA Vora so that it is accessible from all accounts on that image. No state, including permissions and data, is made visible as a result of this.
+SAP HANA Vora stores no persistent state locally. All state is stored in the Hadoop landscape, using HDFS, and with the specified security measures for that instance. It is transferred into SAP HANA Vora only during the execution of queries.
+Some Spark components provide custom SSL or HTTPS connectors. SAP HANA Vora does not provide HTTP or HTTPS connectivity, and because it acts as a local service to a Spark node, providing an SSL connector is not a consideration at this time.
+SAP HANA Vora Installation and Developer Guide
+Security
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved. 61
+Related InformationTechnical System Landscape [page 61]
+62
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved.
+SAP HANA Vora Installation and Developer Guide
+Security
+Important Disclaimers and Legal InformationCoding SamplesAny software coding and/or code lines / strings ("Code") included in this documentation are only examples and are not intended to be used in a productive system environment. The Code is only intended to better explain and visualize the syntax and phrasing rules of certain coding. SAP does not warrant the correctness and completeness of the Code given herein, and SAP shall not be liable for errors or damages caused by the usage of the Code, unless damages were caused by SAP intentionally or by SAP's gross negligence.AccessibilityThe information contained in the SAP documentation represents SAP's current view of accessibility criteria as of the date of publication; it is in no way intended to be a binding guideline on how to ensure accessibility of software products. SAP in particular disclaims any liability in relation to this document. This disclaimer, however, does not apply in cases of wilful misconduct or gross negligence of SAP. Furthermore, this document does not result in any direct or indirect contractual obligations of SAP.Gender-Neutral LanguageAs far as possible, SAP documentation is gender neutral. Depending on the context, the reader is addressed directly with "you", or a gender-neutral noun (such as "sales person" or "working days") is used. If when referring to members of both sexes, however, the third-person singular cannot be avoided or a gender-neutral noun does not exist, SAP reserves the right to use the masculine form of the noun and pronoun. This is to ensure that the documentation remains comprehensible.Internet HyperlinksThe SAP documentation may contain hyperlinks to the Internet. These hyperlinks are intended to serve as a hint about where to find related information. SAP does not warrant the availability and correctness of this related information or the ability of this information to serve a particular purpose. SAP shall not be liable for any damages caused by the use of related information unless damages have been caused by SAP's gross negligence or willful misconduct. All links are categorized for transparency (see: http://help.sap.com/disclaimer).
+SAP HANA Vora Installation and Developer Guide
+Important Disclaimers and Legal Information
+P U B L I C
+© 2015 SAP SE or an SAP affiliate company. All rights reserved. 63
+www.sap.com/contactsap© 2015 SAP SE or an SAP affiliate company. All rights reserved.
+No part of this publication may be reproduced or transmitted in any form or for any purpose without the express permission of SAP SE or an SAP affiliate company. The information contained herein may be changed without prior notice.
+Some software products marketed by SAP SE and its distributors contain proprietary software components of other software vendors. National product specifications may vary.
+These materials are provided by SAP SE or an SAP affiliate company for informational purposes only, without representation or warranty of any kind, and SAP or its affiliated companies shall not be liable for errors or omissions with respect to the materials. The only warranties for SAP or SAP affiliate company products and services are those that are set forth in the express warranty statements accompanying such products and services, if any. Nothing herein should be construed as constituting an additional warranty.
+SAP and other SAP products and services mentioned herein as well as their respective logos are trademarks or registered trademarks of SAP SE (or an SAP affiliate company) in Germany and other countries. All other product and service names mentioned are the trademarks of their respective companies.
+Please see http://www.sap.com/corporate-en/legal/copyright/index.epx for additional trademark information and notices.
