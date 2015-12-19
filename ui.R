@@ -24,4 +24,4 @@ fluidPage(
   )
 )
 
-runApp()
+runGitHub( "Ranalytic", "pratiktawate") 
